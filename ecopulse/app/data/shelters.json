@@ -1,0 +1,52 @@
+[
+  {
+    "id": "shelter-001",
+    "name": "Central Community Center",
+    "lat": 40.7128,
+    "lng": -74.0060,
+    "status": "Open",
+    "capacity": 250,
+    "ada_accessible": true,
+    "medical_support": true
+  },
+  {
+    "id": "shelter-002",
+    "name": "Lincoln High School Gymnasium",
+    "lat": 40.7580,
+    "lng": -73.9855,
+    "status": "Open",
+    "capacity": 400,
+    "ada_accessible": true,
+    "medical_support": false
+  },
+  {
+    "id": "shelter-003",
+    "name": "Washington Memorial Hall",
+    "lat": 40.7489,
+    "lng": -73.9680,
+    "status": "Full",
+    "capacity": 200,
+    "ada_accessible": false,
+    "medical_support": true
+  },
+  {
+    "id": "shelter-004",
+    "name": "St. Mary's Church Basement",
+    "lat": 40.7614,
+    "lng": -73.9776,
+    "status": "Open",
+    "capacity": 150,
+    "ada_accessible": false,
+    "medical_support": false
+  },
+  {
+    "id": "shelter-005",
+    "name": "Harbor District Emergency Hub",
+    "lat": 40.7282,
+    "lng": -74.0076,
+    "status": "Open",
+    "capacity": 350,
+    "ada_accessible": true,
+    "medical_support": true
+  }
+]

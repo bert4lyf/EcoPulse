@@ -1,0 +1,19 @@
+{
+  "name": "EcoPulse Emergency Shelters",
+  "short_name": "EcoPulse",
+  "description": "Offline-ready emergency shelter information for your community.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#111827",
+  "theme_color": "#111827",
+  "categories": ["utilities", "health"],
+  "icons": [
+    {
+      "src": "/ecopulse-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
