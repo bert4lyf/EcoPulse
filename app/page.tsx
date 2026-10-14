@@ -16,11 +16,24 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
+import dynamic from "next/dynamic";
 import { AITriage } from "@/src/components/AITriage";
 import { ReportForm } from "@/src/components/ReportForm";
 import { ShelterList } from "@/src/components/ShelterList";
-import { ShelterMap } from "@/src/components/ShelterMap";
 import { SyncBanner } from "@/src/components/SyncBanner";
+
+const ShelterMap = dynamic(
+  () => import("@/src/components/ShelterMap").then((mod) => mod.ShelterMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-[550px] w-full flex-col items-center justify-center gap-2 rounded-xl border border-white/10 bg-slate-950 text-slate-400">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-red-500 border-t-transparent" />
+        <p className="text-sm font-medium">Loading emergency shelter map...</p>
+      </div>
+    ),
+  },
+);
 import { db } from "@/src/lib/db";
 import { useSyncEngine } from "@/src/lib/useSyncEngine";
 import shelterData from "@/src/data/shelters.json";

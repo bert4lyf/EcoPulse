@@ -1,7 +1,7 @@
 # EcoPulse — Offline-first Emergency PWA
 
 EcoPulse is an offline-first emergency resilience PWA with a local shelter
-directory, an interactive Google map, local report queue, admin report view,
+directory, an interactive shelter map, local report queue, admin report view,
 and AI triage guidance.
 
 ## Create a new copy
@@ -36,7 +36,7 @@ src/
     ReportForm.tsx       # local IndexedDB report queue
     ShelterCard.tsx      # animated shelter card
     ShelterList.tsx      # static data list
-    ShelterMap.tsx       # Google Maps JavaScript API map
+    ShelterMap.tsx       # Leaflet map with CartoDB Dark Matter tiles
   data/
     shelters.json        # five mock shelters
   lib/
@@ -74,24 +74,15 @@ substitute for local emergency services.
 
 ## API keys
 
-Copy `.env.example` to `.env.local` and set both variables before building.
-Never commit `.env.local` or paste either key into source control or chat.
+Copy `.env.example` to `.env.local` and set your variables before building.
+Never commit `.env.local` or paste keys into source control or chat.
 
 - **Gemini:** create a key at <https://aistudio.google.com/app/apikey> and set
   it as the server-only `GEMINI_API_KEY`.
-- **Google Maps:** create or select a project in
-  <https://console.cloud.google.com/google/maps-apis>, attach a billing
-  account, enable **Maps JavaScript API**, then create an API key under
-  **APIs & Services → Credentials**. Restrict the key to **Maps JavaScript
-  API** and HTTP referrers for local development (`http://localhost:3000/*`)
-  and your deployed domain (`https://your-domain.example/*`). Set the restricted
-  key as `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`.
+- **Map:** The interactive shelter map uses Leaflet with CartoDB Dark Matter tiles,
+  which is free and does not require any API key.
 
-The Google Maps key is necessarily visible in browser requests. Its security
-comes from its HTTP-referrer and API restrictions, not from keeping it secret.
-Add these environment variables to your hosting provider before its production
-build; `NEXT_PUBLIC_` values are embedded at build time. The live map requires
-network access and is not available offline.
+The live map requires network access to fetch map tiles and is not available offline.
 
 The **Simulate offline** button changes the displayed status only. It does not
 change the browser's network connection; use Chrome DevTools to test actual

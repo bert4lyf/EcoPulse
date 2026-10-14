@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo } from "react";
 import {
-  APIProvider,
-  Circle,
-  InfoWindow,
-  Map,
+  MapContainer,
+  TileLayer,
   Marker,
-} from "@vis.gl/react-google-maps";
+  Popup,
+  useMap,
+} from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 import type { Shelter } from "@/src/types/shelter";
 
 interface ShelterMapProps {
@@ -16,187 +18,144 @@ interface ShelterMapProps {
   onReportIssue: (shelterId: string) => void;
 }
 
-const AUSTIN_CENTER: google.maps.LatLngLiteral = {
-  lat: 30.2672,
-  lng: -97.7431,
-};
+const AUSTIN_CENTER: [number, number] = [30.2672, -97.7431];
+const DEFAULT_ZOOM = 11;
 
-const DARK_MAP_STYLES: google.maps.MapTypeStyle[] = [
-  { elementType: "geometry", stylers: [{ color: "#202124" }] },
-  { elementType: "labels.text.fill", stylers: [{ color: "#e8eaed" }] },
-  { elementType: "labels.text.stroke", stylers: [{ color: "#202124" }] },
-  {
-    featureType: "administrative",
-    elementType: "geometry.stroke",
-    stylers: [{ color: "#5f6368" }],
-  },
-  {
-    featureType: "poi",
-    elementType: "geometry",
-    stylers: [{ color: "#292a2d" }],
-  },
-  {
-    featureType: "road",
-    elementType: "geometry",
-    stylers: [{ color: "#383a3d" }],
-  },
-  {
-    featureType: "road",
-    elementType: "geometry.stroke",
-    stylers: [{ color: "#202124" }],
-  },
-  {
-    featureType: "transit",
-    elementType: "geometry",
-    stylers: [{ color: "#303134" }],
-  },
-  {
-    featureType: "water",
-    elementType: "geometry",
-    stylers: [{ color: "#111820" }],
-  },
-];
+// Helper component to center and zoom map when a shelter is selected
+function MapController({
+  center,
+  zoom,
+}: {
+  center: [number, number];
+  zoom: number;
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    map.setView(center, zoom, { animate: true });
+  }, [center, zoom, map]);
+
+  return null;
+}
+
+function createShelterIcon(status: "Open" | "Full", isSelected: boolean) {
+  const bg = status === "Open" ? "#10b981" : "#ef4444";
+  const border = isSelected ? "#f59e0b" : "#0f172a";
+  const size = isSelected ? 26 : 20;
+
+  return L.divIcon({
+    className: "custom-shelter-marker",
+    html: `
+      <div style="
+        width: ${size}px;
+        height: ${size}px;
+        background-color: ${bg};
+        border: 3px solid ${border};
+        border-radius: 50%;
+        box-shadow: 0 0 ${isSelected ? "14px #f59e0b" : "6px rgba(0,0,0,0.7)"};
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.2s ease;
+      "></div>
+    `,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    popupAnchor: [0, -size / 2],
+  });
+}
 
 export function ShelterMap({
   shelters,
   selectedShelterId,
   onReportIssue,
 }: ShelterMapProps) {
-  const [mapError, setMapError] = useState<string | null>(null);
-  const [clickedShelter, setClickedShelter] = useState<{
-    parentSelection: string | undefined;
-    shelterId: string | null;
-  } | null>(null);
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-  const activeShelterId =
-    clickedShelter && clickedShelter.parentSelection === selectedShelterId
-      ? clickedShelter.shelterId
-      : selectedShelterId;
-  const selectedShelter =
-    shelters.find((shelter) => shelter.id === activeShelterId);
+  const selectedShelter = useMemo(
+    () => shelters.find((s) => s.id === selectedShelterId),
+    [shelters, selectedShelterId],
+  );
 
-  if (!apiKey) {
-    return (
-      <div className="flex h-[600px] flex-col items-center justify-center gap-3 rounded-xl border border-amber-700/50 bg-slate-950 px-6 text-center">
-        <p className="text-lg font-bold text-white">Google Maps needs an API key</p>
-        <p className="max-w-xl text-sm leading-6 text-slate-400">
-          Add <code className="text-amber-200">NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code>{" "}
-          to your local environment and deployment settings, then rebuild the
-          app.
-        </p>
-        <a
-          href="https://console.cloud.google.com/google/maps-apis"
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex min-h-11 items-center rounded-lg border border-amber-700/60 px-4 py-2 text-sm font-bold text-amber-200 hover:bg-amber-950/40"
-        >
-          Open Google Maps Platform
-        </a>
-      </div>
-    );
-  }
-
-  if (mapError) {
-    return (
-      <div
-        role="alert"
-        className="flex h-[600px] flex-col items-center justify-center gap-3 rounded-xl border border-red-700/50 bg-slate-950 px-6 text-center"
-      >
-        <p className="text-lg font-bold text-white">Google Maps could not load</p>
-        <p className="max-w-xl text-sm leading-6 text-slate-400">{mapError}</p>
-        <p className="max-w-xl text-xs leading-5 text-slate-500">
-          Check that Maps JavaScript API is enabled, billing is active, and the
-          key allows this site&apos;s domain.
-        </p>
-      </div>
-    );
-  }
+  const activeCenter: [number, number] = selectedShelter
+    ? [selectedShelter.lat, selectedShelter.lng]
+    : AUSTIN_CENTER;
+  const activeZoom = selectedShelter ? 14 : DEFAULT_ZOOM;
 
   return (
-    <div className="h-[600px] overflow-hidden rounded-xl border border-slate-700 shadow-xl shadow-black/30">
-      <APIProvider
-        apiKey={apiKey}
-        onError={() =>
-          setMapError(
-            "The API key was rejected or the Maps JavaScript API could not be reached.",
-          )
-        }
+    <div className="relative h-[550px] w-full overflow-hidden rounded-xl border border-slate-700 shadow-xl shadow-black/30">
+      <MapContainer
+        center={AUSTIN_CENTER}
+        zoom={DEFAULT_ZOOM}
+        scrollWheelZoom={true}
+        className="h-full w-full z-0"
+        style={{ height: "100%", width: "100%", backgroundColor: "#191a1a" }}
       >
-        <Map
-          defaultCenter={AUSTIN_CENTER}
-          defaultZoom={11}
-          center={
-            selectedShelter
-              ? { lat: selectedShelter.lat, lng: selectedShelter.lng }
-              : undefined
-          }
-          zoom={selectedShelter ? 14 : undefined}
-          gestureHandling="greedy"
-          disableDefaultUI={false}
-          styles={DARK_MAP_STYLES}
-          className="h-full w-full"
-        >
-          <Circle
-            center={AUSTIN_CENTER}
-            radius={9000}
-            strokeColor="#f59e0b"
-            strokeOpacity={0.65}
-            strokeWeight={1}
-            fillColor="#f59e0b"
-            fillOpacity={0.04}
-            clickable={false}
-          />
-          {shelters.map((shelter) => (
+        <MapController center={activeCenter} zoom={activeZoom} />
+
+        {/* Free CartoDB Dark Matter tile layer - requires no API key */}
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          subdomains="abcd"
+          maxZoom={19}
+        />
+
+        {shelters.map((shelter) => {
+          const isSelected = shelter.id === selectedShelterId;
+          const icon = createShelterIcon(shelter.status, isSelected);
+
+          return (
             <Marker
               key={shelter.id}
-              position={{ lat: shelter.lat, lng: shelter.lng }}
-              title={`${shelter.name} — ${shelter.status}`}
-              onClick={() =>
-                setClickedShelter({
-                  parentSelection: selectedShelterId,
-                  shelterId: shelter.id,
-                })
-              }
-              icon={{
-                url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
-                  `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="${shelter.status === "Open" ? "#34d399" : "#f87171"}" stroke="#111827" stroke-width="3"/></svg>`,
-                )}`,
-              }}
-            />
-          ))}
-          {selectedShelter && (
-            <InfoWindow
-              position={{
-                lat: selectedShelter.lat,
-                lng: selectedShelter.lng,
-              }}
-              onCloseClick={() =>
-                setClickedShelter({
-                  parentSelection: selectedShelterId,
-                  shelterId: null,
-                })
-              }
+              position={[shelter.lat, shelter.lng]}
+              icon={icon}
             >
-              <div className="min-w-48 space-y-2 text-slate-900">
-                <h3 className="font-bold">{selectedShelter.name}</h3>
-                <p>
-                  Status: <strong>{selectedShelter.status}</strong>
-                </p>
-                <p>
-                  Capacity: <strong>{selectedShelter.capacity}</strong>
-                </p>
-                <button
-                  type="button"
-                  onClick={() => onReportIssue(selectedShelter.id)}
-                  className="min-h-11 rounded-md bg-red-700 px-3 py-2 font-semibold text-white hover:bg-red-800"
-                >
-                  Report Issue
-                </button>
-              </div>
-            </InfoWindow>
-          )}
-        </Map>
-      </APIProvider>
+              <Popup className="shelter-leaflet-popup">
+                <div className="min-w-48 space-y-2 p-1 text-slate-900">
+                  <h3 className="font-bold text-base leading-tight">
+                    {shelter.name}
+                  </h3>
+                  <div className="text-sm space-y-1">
+                    <p>
+                      Status:{" "}
+                      <strong
+                        className={
+                          shelter.status === "Open"
+                            ? "font-bold text-emerald-700"
+                            : "font-bold text-red-700"
+                        }
+                      >
+                        {shelter.status}
+                      </strong>
+                    </p>
+                    <p>
+                      Capacity: <strong>{shelter.capacity}</strong>
+                    </p>
+                    <p>
+                      Accessibility:{" "}
+                      <strong>
+                        {shelter.ada_accessible ? "ADA Compliant" : "Standard"}
+                      </strong>
+                    </p>
+                    <p>
+                      Medical Support:{" "}
+                      <strong>
+                        {shelter.medical_support ? "Available" : "None"}
+                      </strong>
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onReportIssue(shelter.id)}
+                    className="mt-2 w-full min-h-10 cursor-pointer rounded-md bg-red-700 px-3 py-2 text-center text-sm font-semibold text-white transition-colors hover:bg-red-800"
+                  >
+                    Report Issue
+                  </button>
+                </div>
+              </Popup>
+            </Marker>
+          );
+        })}
+      </MapContainer>
     </div>
   );
 }
